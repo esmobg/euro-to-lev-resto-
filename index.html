@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Достъпен калкулатор за изчисляване на ресто в лева и евро">
+    <title>Калкулатор за ресто - BGN/EUR</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Accessibility Controls -->
+        <div class="accessibility-controls" role="toolbar" aria-label="Контроли за достъпност">
+            <div class="control-group">
+                <label for="language-select" class="control-label">Език / Language:</label>
+                <select id="language-select" class="control-select" aria-label="Избор на език">
+                    <option value="bg">Български</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="contrast-select" class="control-label" id="contrast-label">Контраст:</label>
+                <select id="contrast-select" class="control-select" aria-label="Избор на цветов контраст">
+                    <option value="default">Стандартен</option>
+                    <option value="high">Висок</option>
+                    <option value="ultra">Ултра висок</option>
+                </select>
+            </div>
+        </div>
+
+        <header>
+            <h1 id="main-title">Калкулатор за ресто</h1>
+            <p class="subtitle" id="subtitle">Изчисляване на ресто и конвертиране между лева (BGN) и евро (EUR)</p>
+        </header>
+
+        <main>
+            <form id="calculator-form" aria-label="Форма за калкулатор за ресто">
+                <!-- Currency Selection -->
+                <fieldset class="currency-selection" role="group" aria-labelledby="currency-label">
+                    <legend id="currency-label">Избор на валута</legend>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input 
+                                type="radio" 
+                                name="currency" 
+                                value="BGN" 
+                                id="currency-bgn"
+                                checked
+                                aria-describedby="currency-description"
+                            >
+                            <span>Български лев (BGN)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input 
+                                type="radio" 
+                                name="currency" 
+                                value="EUR" 
+                                id="currency-eur"
+                                aria-describedby="currency-description"
+                            >
+                            <span>Евро (EUR)</span>
+                        </label>
+                    </div>
+                    <p id="currency-description" class="sr-only">
+                        Изберете валутата, в която ще работите. Курсът е фиксиран: 1 EUR = 1.95583 BGN
+                    </p>
+                </fieldset>
+
+                <!-- Input Fields -->
+                <div class="input-group">
+                    <label for="amount-paid" class="input-label">
+                        Сума платена
+                        <span class="required" aria-label="задължително поле">*</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        id="amount-paid" 
+                        name="amount-paid"
+                        step="0.01"
+                        min="0"
+                        required
+                        aria-required="true"
+                        aria-describedby="amount-paid-description"
+                        placeholder="0.00"
+                    >
+                    <span id="amount-paid-description" class="sr-only">
+                        Въведете сумата, която е платена
+                    </span>
+                </div>
+
+                <div class="input-group">
+                    <label for="item-cost" class="input-label">
+                        Стойност на стоката
+                        <span class="required" aria-label="задължително поле">*</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        id="item-cost" 
+                        name="item-cost"
+                        step="0.01"
+                        min="0"
+                        required
+                        aria-required="true"
+                        aria-describedby="item-cost-description"
+                        placeholder="0.00"
+                    >
+                    <span id="item-cost-description" class="sr-only">
+                        Въведете стойността на стоката
+                    </span>
+                </div>
+
+
+                <!-- Action Buttons -->
+                <div class="button-group">
+                    <button 
+                        type="button" 
+                        id="calculate-btn"
+                        class="btn btn-primary"
+                        aria-label="Изчисли ресто и конвертирай валута"
+                    >
+                        Изчисли
+                    </button>
+                    <button 
+                        type="reset" 
+                        id="clear-btn"
+                        class="btn btn-secondary"
+                        aria-label="Изчисти всички полета"
+                    >
+                        Изчисти
+                    </button>
+                </div>
+
+                <!-- Results Section -->
+                <div class="results-section" aria-live="polite" aria-atomic="true">
+                    <div id="change-result" class="result-card" role="status" aria-live="polite">
+                        <h2 class="result-title" id="change-title">Ресто (в избраната валута)</h2>
+                        <p class="result-value" id="change-value" aria-label="Сума на рестото">-</p>
+                        <span class="sr-only" id="change-announcement"></span>
+                    </div>
+
+                    <div id="conversion-result" class="result-card" role="status" aria-live="polite">
+                        <h2 class="result-title" id="conversion-title">Ресто (в другата валута)</h2>
+                        <p class="result-value" id="conversion-value" aria-label="Ресто конвертирано в другата валута">-</p>
+                        <span class="sr-only" id="conversion-announcement"></span>
+                    </div>
+                </div>
+
+                <!-- Error Messages -->
+                <div id="error-messages" class="error-container" role="alert" aria-live="assertive"></div>
+            </form>
+
+            <!-- Exchange Rate Info -->
+            <div class="info-section" aria-label="Информация за валутния курс">
+                <p class="exchange-rate-info">
+                    <strong>Фиксиран курс:</strong> 1 EUR = 1.95583 BGN
+                </p>
+            </div>
+        </main>
+
+        <footer>
+            <p class="accessibility-info">
+                Този калкулатор е създаден с фокус върху достъпността. Поддържа екранни четци, клавиатурна навигация и висока контрастност.
+            </p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

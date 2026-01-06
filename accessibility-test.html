@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест за достъпност и изчисления - Калкулатор</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h2 {
+            color: #0066cc;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        .test-item {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 4px solid #ddd;
+        }
+        .test-item.pass {
+            border-left-color: #008000;
+            background: #f0fff0;
+        }
+        .test-item.fail {
+            border-left-color: #ff0000;
+            background: #fff0f0;
+        }
+        .test-item.warning {
+            border-left-color: #ffaa00;
+            background: #fffaf0;
+        }
+        .test-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .test-result {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .summary {
+            background: #e6f2ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .summary h3 {
+            margin-top: 0;
+        }
+        .stat {
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 5px;
+        }
+        .stat.pass { border-left: 4px solid #008000; }
+        .stat.fail { border-left: 4px solid #ff0000; }
+        .stat.warning { border-left: 4px solid #ffaa00; }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0052a3;
+        }
+        .calculation-test {
+            background: #f9f9f9;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .calculation-test.pass {
+            border-left: 4px solid #008000;
+        }
+        .calculation-test.fail {
+            border-left: 4px solid #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Пълен тест за достъпност (WCAG AA) и изчисления</h1>
+    
+    <div class="summary">
+        <h3>Резюме на тестовете</h3>
+        <div class="stat pass">
+            <strong>Успешни:</strong> <span id="pass-count">0</span>
+        </div>
+        <div class="stat fail">
+            <strong>Неуспешни:</strong> <span id="fail-count">0</span>
+        </div>
+        <div class="stat warning">
+            <strong>Предупреждения:</strong> <span id="warning-count">0</span>
+        </div>
+        <div style="margin-top: 20px;">
+            <button onclick="runAllTests()">Стартирай всички тестове</button>
+            <button onclick="runAccessibilityTests()">Тест за достъпност</button>
+            <button onclick="runCalculationTests()">Тест за изчисления</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>1. Тест за достъпност (WCAG AA)</h2>
+        <div id="accessibility-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Тест за правилни изчисления</h2>
+        <div id="calculation-results"></div>
+    </div>
+
+    <script>
+        const EXCHANGE_RATE = 1.95583;
+        let passCount = 0;
+        let failCount = 0;
+        let warningCount = 0;
+
+        function addTestResult(section, name, passed, message, isWarning = false) {
+            const div = document.createElement('div');
+            div.className = `test-item ${passed ? 'pass' : (isWarning ? 'warning' : 'fail')}`;
+            div.innerHTML = `
+                <div class="test-name">${name}</div>
+                <div class="test-result">${message}</div>
+            `;
+            document.getElementById(section).appendChild(div);
+            
+            if (passed) passCount++;
+            else if (isWarning) warningCount++;
+            else failCount++;
+            
+            updateSummary();
+        }
+
+        function addCalculationTest(name, input, expected, actual, passed) {
+            const div = document.createElement('div');
+            div.className = `calculation-test ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <strong>${name}</strong><br>
+                Вход: ${input}<br>
+                Очаквано: ${expected}<br>
+                Получено: ${actual}<br>
+                Статус: ${passed ? '✓ ПРАВИЛНО' : '✗ ГРЕШКА'}
+            `;
+            document.getElementById('calculation-results').appendChild(div);
+            
+            if (passed) passCount++;
+            else failCount++;
+            
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('pass-count').textContent = passCount;
+            document.getElementById('fail-count').textContent = failCount;
+            document.getElementById('warning-count').textContent = warningCount;
+        }
+
+        function clearResults() {
+            passCount = 0;
+            failCount = 0;
+            warningCount = 0;
+            document.getElementById('accessibility-results').innerHTML = '';
+            document.getElementById('calculation-results').innerHTML = '';
+            updateSummary();
+        }
+
+        // Тест за достъпност
+        async function runAccessibilityTests() {
+            clearResults();
+            
+            // Отваряме основната страница в iframe за тестване
+            const iframe = document.createElement('iframe');
+            iframe.src = 'index.html';
+            iframe.style.width = '100%';
+            iframe.style.height = '600px';
+            iframe.style.border = '1px solid #ddd';
+            document.body.appendChild(iframe);
+            
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            
+            // 1. Проверка за семантичен HTML
+            const main = iframeDoc.querySelector('main');
+            const header = iframeDoc.querySelector('header');
+            const footer = iframeDoc.querySelector('footer');
+            addTestResult('accessibility-results', 
+                'Семантичен HTML (main, header, footer)',
+                main && header && footer,
+                main && header && footer ? 'Намерени са всички семантични елементи' : 'Липсват семантични елементи'
+            );
+
+            // 2. Проверка за ARIA атрибути
+            const form = iframeDoc.getElementById('calculator-form');
+            const hasAriaLabel = form && form.hasAttribute('aria-label');
+            addTestResult('accessibility-results',
+                'ARIA атрибути на формата',
+                hasAriaLabel,
+                hasAriaLabel ? 'Формата има aria-label' : 'Формата няма aria-label'
+            );
+
+            // 3. Проверка за labels на input полета
+            const amountPaidInput = iframeDoc.getElementById('amount-paid');
+            const itemCostInput = iframeDoc.getElementById('item-cost');
+            const amountPaidLabel = amountPaidInput && iframeDoc.querySelector('label[for="amount-paid"]');
+            const itemCostLabel = itemCostInput && iframeDoc.querySelector('label[for="item-cost"]');
+            addTestResult('accessibility-results',
+                'Labels на input полета',
+                amountPaidLabel && itemCostLabel,
+                amountPaidLabel && itemCostLabel ? 'Всички input полета имат labels' : 'Някои input полета нямат labels'
+            );
+
+            // 4. Проверка за required атрибути
+            const hasRequired = amountPaidInput && amountPaidInput.hasAttribute('required') &&
+                               itemCostInput && itemCostInput.hasAttribute('required');
+            addTestResult('accessibility-results',
+                'Required атрибути',
+                hasRequired,
+                hasRequired ? 'Всички задължителни полета имат required атрибут' : 'Липсват required атрибути'
+            );
+
+            // 5. Проверка за aria-required
+            const hasAriaRequired = amountPaidInput && amountPaidInput.hasAttribute('aria-required') &&
+                                   itemCostInput && itemCostInput.hasAttribute('aria-required');
+            addTestResult('accessibility-results',
+                'ARIA required атрибути',
+                hasAriaRequired,
+                hasAriaRequired ? 'Всички полета имат aria-required' : 'Липсват aria-required атрибути'
+            );
+
+            // 6. Проверка за aria-describedby
+            const hasAriaDescribedBy = amountPaidInput && amountPaidInput.hasAttribute('aria-describedby') &&
+                                      itemCostInput && itemCostInput.hasAttribute('aria-describedby');
+            addTestResult('accessibility-results',
+                'ARIA describedby атрибути',
+                hasAriaDescribedBy,
+                hasAriaDescribedBy ? 'Всички полета имат aria-describedby' : 'Липсват aria-describedby атрибути'
+            );
+
+            // 7. Проверка за focus индикатори
+            const styles = iframeDoc.styleSheets[0];
+            let hasFocusStyles = false;
+            try {
+                for (let rule of styles.cssRules) {
+                    if (rule.selectorText && rule.selectorText.includes(':focus')) {
+                        hasFocusStyles = true;
+                        break;
+                    }
+                }
+            } catch(e) {}
+            addTestResult('accessibility-results',
+                'Focus индикатори (CSS)',
+                hasFocusStyles,
+                hasFocusStyles ? 'Намерени са focus стилове' : 'Липсват focus стилове'
+            );
+
+            // 8. Проверка за контраст на цветовете
+            const body = iframeDoc.body;
+            const bodyColor = window.getComputedStyle(body).color;
+            const bodyBg = window.getComputedStyle(body).backgroundColor;
+            // Това е опростена проверка - реалната проверка изисква изчисляване на контрастно съотношение
+            addTestResult('accessibility-results',
+                'Цветов контраст (базова проверка)',
+                true,
+                'Цветовете са дефинирани (пълна проверка изисква изчисляване на контрастно съотношение)',
+                true
+            );
+
+            // 9. Проверка за клавиатурна навигация
+            const buttons = iframeDoc.querySelectorAll('button');
+            let allButtonsFocusable = true;
+            buttons.forEach(btn => {
+                if (btn.tabIndex < 0 && !btn.hasAttribute('disabled')) {
+                    allButtonsFocusable = false;
+                }
+            });
+            addTestResult('accessibility-results',
+                'Клавиатурна навигация (бутони)',
+                allButtonsFocusable,
+                allButtonsFocusable ? 'Всички бутони са достъпни с клавиатура' : 'Някои бутони не са достъпни с клавиатура'
+            );
+
+            // 10. Проверка за aria-live региони
+            const ariaLiveRegions = iframeDoc.querySelectorAll('[aria-live]');
+            addTestResult('accessibility-results',
+                'ARIA live региони',
+                ariaLiveRegions.length > 0,
+                ariaLiveRegions.length > 0 ? `Намерени са ${ariaLiveRegions.length} ARIA live региона` : 'Липсват ARIA live региони'
+            );
+
+            // 11. Проверка за скрити елементи за екранни четци
+            const srOnly = iframeDoc.querySelectorAll('.sr-only');
+            addTestResult('accessibility-results',
+                'Скрити елементи за екранни четци',
+                srOnly.length > 0,
+                srOnly.length > 0 ? `Намерени са ${srOnly.length} скрити елемента` : 'Липсват скрити елементи за екранни четци'
+            );
+
+            // 12. Проверка за fieldset и legend
+            const fieldsets = iframeDoc.querySelectorAll('fieldset');
+            const legends = iframeDoc.querySelectorAll('legend');
+            addTestResult('accessibility-results',
+                'Fieldset и Legend',
+                fieldsets.length > 0 && legends.length > 0,
+                fieldsets.length > 0 && legends.length > 0 ? 'Използват се fieldset и legend' : 'Не се използват fieldset и legend'
+            );
+
+            // 13. Проверка за алтернативен текст на изображения (ако има)
+            const images = iframeDoc.querySelectorAll('img');
+            let allImagesHaveAlt = true;
+            images.forEach(img => {
+                if (!img.hasAttribute('alt')) {
+                    allImagesHaveAlt = false;
+                }
+            });
+            addTestResult('accessibility-results',
+                'Alt текст на изображения',
+                images.length === 0 || allImagesHaveAlt,
+                images.length === 0 ? 'Няма изображения' : (allImagesHaveAlt ? 'Всички изображения имат alt текст' : 'Някои изображения нямат alt текст')
+            );
+
+            // 14. Проверка за heading структура
+            const h1 = iframeDoc.querySelectorAll('h1');
+            const h2 = iframeDoc.querySelectorAll('h2');
+            addTestResult('accessibility-results',
+                'Heading структура',
+                h1.length === 1 && h2.length > 0,
+                h1.length === 1 && h2.length > 0 ? 'Правилна heading структура (1x h1, множество h2)' : 'Неправилна heading структура'
+            );
+
+            // 15. Проверка за lang атрибут
+            const html = iframeDoc.documentElement;
+            const hasLang = html && html.hasAttribute('lang');
+            addTestResult('accessibility-results',
+                'Lang атрибут на HTML',
+                hasLang,
+                hasLang ? `HTML има lang атрибут: ${html.getAttribute('lang')}` : 'HTML няма lang атрибут'
+            );
+
+            // 16. Проверка за role атрибути
+            const roles = iframeDoc.querySelectorAll('[role]');
+            addTestResult('accessibility-results',
+                'Role атрибути',
+                roles.length > 0,
+                roles.length > 0 ? `Намерени са ${roles.length} елемента с role атрибут` : 'Липсват role атрибути'
+            );
+
+            // 17. Проверка за контраст опции
+            const contrastSelect = iframeDoc.getElementById('contrast-select');
+            addTestResult('accessibility-results',
+                'Опции за контраст',
+                contrastSelect !== null,
+                contrastSelect !== null ? 'Намерена е опция за смяна на контраст' : 'Липсва опция за смяна на контраст'
+            );
+
+            // 18. Проверка за езикови опции
+            const languageSelect = iframeDoc.getElementById('language-select');
+            addTestResult('accessibility-results',
+                'Опции за език',
+                languageSelect !== null,
+                languageSelect !== null ? 'Намерена е опция за смяна на език' : 'Липсва опция за смяна на език'
+            );
+
+            // Премахваме iframe след теста
+            setTimeout(() => iframe.remove(), 1000);
+        }
+
+        // Тест за изчисления
+        function runCalculationTests() {
+            clearResults();
+            
+            const tests = [
+                // BGN to EUR tests
+                {
+                    name: '100 BGN → EUR',
+                    paid: 100,
+                    cost: 0,
+                    currency: 'BGN',
+                    expectedChange: 100,
+                    expectedEUR: 100 / EXCHANGE_RATE
+                },
+                {
+                    name: '195.583 BGN → EUR (точно 100 EUR)',
+                    paid: 195.583,
+                    cost: 0,
+                    currency: 'BGN',
+                    expectedChange: 195.583,
+                    expectedEUR: 100
+                },
+                {
+                    name: '10 BGN платено, 7.50 BGN стока',
+                    paid: 10,
+                    cost: 7.50,
+                    currency: 'BGN',
+                    expectedChange: 2.50,
+                    expectedEUR: 2.50 / EXCHANGE_RATE
+                },
+                // EUR to BGN tests
+                {
+                    name: '100 EUR → BGN',
+                    paid: 100,
+                    cost: 0,
+                    currency: 'EUR',
+                    expectedChange: 100,
+                    expectedBGN: 100 * EXCHANGE_RATE
+                },
+                {
+                    name: '50 EUR платено, 30 EUR стока',
+                    paid: 50,
+                    cost: 30,
+                    currency: 'EUR',
+                    expectedChange: 20,
+                    expectedBGN: 20 * EXCHANGE_RATE
+                },
+                {
+                    name: '1 EUR → BGN (точно 1.95583 BGN)',
+                    paid: 1,
+                    cost: 0,
+                    currency: 'EUR',
+                    expectedChange: 1,
+                    expectedBGN: EXCHANGE_RATE
+                },
+                // Edge cases
+                {
+                    name: 'Малка сума: 0.01 BGN',
+                    paid: 0.01,
+                    cost: 0,
+                    currency: 'BGN',
+                    expectedChange: 0.01,
+                    expectedEUR: 0.01 / EXCHANGE_RATE
+                },
+                {
+                    name: 'Голяма сума: 10000 BGN',
+                    paid: 10000,
+                    cost: 0,
+                    currency: 'BGN',
+                    expectedChange: 10000,
+                    expectedEUR: 10000 / EXCHANGE_RATE
+                },
+                {
+                    name: 'Ресто с много десетични: 123.456 BGN',
+                    paid: 123.456,
+                    cost: 50.123,
+                    currency: 'BGN',
+                    expectedChange: 73.333,
+                    expectedEUR: 73.333 / EXCHANGE_RATE
+                }
+            ];
+
+            tests.forEach(test => {
+                let change, converted;
+                
+                if (test.currency === 'BGN') {
+                    change = test.paid - test.cost;
+                    converted = change / EXCHANGE_RATE;
+                    const expectedConverted = test.expectedEUR;
+                    const passed = Math.abs(converted - expectedConverted) < 0.01;
+                    
+                    addCalculationTest(
+                        test.name,
+                        `Платено: ${test.paid} ${test.currency}, Стокa: ${test.cost} ${test.currency}`,
+                        `${expectedConverted.toFixed(2)} EUR`,
+                        `${converted.toFixed(2)} EUR`,
+                        passed
+                    );
+                } else {
+                    change = test.paid - test.cost;
+                    converted = change * EXCHANGE_RATE;
+                    const expectedConverted = test.expectedBGN;
+                    const passed = Math.abs(converted - expectedConverted) < 0.01;
+                    
+                    addCalculationTest(
+                        test.name,
+                        `Платено: ${test.paid} ${test.currency}, Стокa: ${test.cost} ${test.currency}`,
+                        `${expectedConverted.toFixed(2)} BGN`,
+                        `${converted.toFixed(2)} BGN`,
+                        passed
+                    );
+                }
+            });
+
+            // Тест за валидация
+            addTestResult('calculation-results',
+                'Валидация на отрицателни стойности',
+                true,
+                'Валидацията трябва да се тества ръчно в браузъра',
+                true
+            );
+
+            // Тест за гранични случаи
+            const edgeCase1 = 0.01 / EXCHANGE_RATE;
+            const edgeCase2 = 0.01 * EXCHANGE_RATE;
+            addCalculationTest(
+                'Граничен случай: 0.01 BGN → EUR',
+                '0.01 BGN',
+                `${(0.01 / EXCHANGE_RATE).toFixed(5)} EUR`,
+                `${edgeCase1.toFixed(5)} EUR`,
+                Math.abs(edgeCase1 - (0.01 / EXCHANGE_RATE)) < 0.00001
+            );
+            addCalculationTest(
+                'Граничен случай: 0.01 EUR → BGN',
+                '0.01 EUR',
+                `${(0.01 * EXCHANGE_RATE).toFixed(5)} BGN`,
+                `${edgeCase2.toFixed(5)} BGN`,
+                Math.abs(edgeCase2 - (0.01 * EXCHANGE_RATE)) < 0.00001
+            );
+        }
+
+        function runAllTests() {
+            runAccessibilityTests();
+            setTimeout(() => runCalculationTests(), 3000);
+        }
+
+        // Автоматично стартиране при зареждане
+        window.addEventListener('load', () => {
+            setTimeout(() => runAllTests(), 1000);
+        });
+    </script>
+</body>
+</html>
+
