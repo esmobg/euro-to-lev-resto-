@@ -35,7 +35,12 @@ const translations = {
         enterPaid: 'Въведете сумата, която е платена',
         enterCost: 'Въведете стойността на стоката',
         calculateAria: 'Изчисли ресто и конвертирай валута',
-        clearAria: 'Изчисти всички полета'
+        clearAria: 'Изчисти всички полета',
+        themeLabel: 'Цветова тема:',
+        themeLight: 'Светла',
+        themeDark: 'Тъмна',
+        themeAuto: 'Автоматична (OS)',
+        footerCredit: 'Изработено от'
     },
     en: {
         mainTitle: 'Change Calculator',
@@ -62,6 +67,11 @@ const translations = {
         change: 'Change:',
         changeIn: 'Change in {currency}:',
         cleared: 'All fields cleared',
+        themeLabel: 'Color Theme:',
+        themeLight: 'Light',
+        themeDark: 'Dark',
+        themeAuto: 'Auto (OS)',
+        footerCredit: 'Created by',
         currencySelected: 'Selected currency:',
         calculatorAnnouncement: 'Change calculator. Selected currency: {currency}. Rate: 1 EUR = {rate} BGN',
         bgn: 'Bulgarian Lev',
@@ -88,8 +98,10 @@ const conversionValue = document.getElementById('conversion-value');
 const changeAnnouncement = document.getElementById('change-announcement');
 const conversionAnnouncement = document.getElementById('conversion-announcement');
 const errorContainer = document.getElementById('error-messages');
-const languageSelect = document.getElementById('language-select');
-const contrastSelect = document.getElementById('contrast-select');
+// DOM elements - initialize immediately if DOM is ready, otherwise on load
+let languageSelect = document.getElementById('language-select');
+let contrastSelect = document.getElementById('contrast-select');
+let themeSelect = document.getElementById('theme-select');
 
 // Get selected currency
 function getSelectedCurrency() {
@@ -286,18 +298,24 @@ function updateLanguage() {
     if (currencyDesc) currencyDesc.textContent = t.currencyDescription;
     
     // Update radio button labels - find the span inside the label
-    const bgnLabel = document.querySelector('label[for="currency-bgn"]');
-    const eurLabel = document.querySelector('label[for="currency-eur"]');
-    if (bgnLabel) {
-        const bgnSpan = bgnLabel.querySelector('span');
-        if (bgnSpan) {
-            bgnSpan.textContent = currentLanguage === 'bg' ? 'Български лев (BGN)' : 'Bulgarian Lev (BGN)';
+    const bgnInput = document.getElementById('currency-bgn');
+    const eurInput = document.getElementById('currency-eur');
+    if (bgnInput) {
+        const bgnLabel = bgnInput.closest('label');
+        if (bgnLabel) {
+            const bgnSpan = bgnLabel.querySelector('span');
+            if (bgnSpan) {
+                bgnSpan.textContent = currentLanguage === 'bg' ? 'Български лев (BGN)' : 'Bulgarian Lev (BGN)';
+            }
         }
     }
-    if (eurLabel) {
-        const eurSpan = eurLabel.querySelector('span');
-        if (eurSpan) {
-            eurSpan.textContent = currentLanguage === 'bg' ? 'Евро (EUR)' : 'Euro (EUR)';
+    if (eurInput) {
+        const eurLabel = eurInput.closest('label');
+        if (eurLabel) {
+            const eurSpan = eurLabel.querySelector('span');
+            if (eurSpan) {
+                eurSpan.textContent = currentLanguage === 'bg' ? 'Евро (EUR)' : 'Euro (EUR)';
+            }
         }
     }
     
@@ -348,9 +366,17 @@ function updateLanguage() {
         accessibilityInfo.textContent = t.accessibilityInfo;
     }
     
+    const footerCredit = document.querySelector('.footer-credit');
+    if (footerCredit) {
+        footerCredit.innerHTML = `${t.footerCredit} <a href="https://ismailov.website" target="_blank" rel="noopener noreferrer">ismailov.website</a>`;
+    }
+    
     // Controls
     const contrastLabel = document.getElementById('contrast-label');
     if (contrastLabel) contrastLabel.textContent = t.contrastLabel;
+    
+    const themeLabel = document.getElementById('theme-label');
+    if (themeLabel) themeLabel.textContent = t.themeLabel;
     
     const languageLabel = document.querySelector('label[for="language-select"]');
     if (languageLabel) languageLabel.textContent = t.languageLabel;
@@ -362,6 +388,15 @@ function updateLanguage() {
         if (defaultOption) defaultOption.textContent = t.contrastDefault;
         if (highOption) highOption.textContent = t.contrastHigh;
         if (ultraOption) ultraOption.textContent = t.contrastUltra;
+    }
+    
+    if (themeSelect) {
+        const lightOption = themeSelect.querySelector('option[value="light"]');
+        const darkOption = themeSelect.querySelector('option[value="dark"]');
+        const autoOption = themeSelect.querySelector('option[value="auto"]');
+        if (lightOption) lightOption.textContent = t.themeLight;
+        if (darkOption) darkOption.textContent = t.themeDark;
+        if (autoOption) autoOption.textContent = t.themeAuto;
     }
     
     // Update currency labels
@@ -525,7 +560,14 @@ itemCostInput.addEventListener('input', debounceCalculate);
 
 // Handle language change
 function handleLanguageChange() {
-    currentLanguage = languageSelect.value;
+    // Get language select element directly (don't rely on global variable)
+    const currentLanguageSelect = document.getElementById('language-select');
+    if (!currentLanguageSelect) {
+        console.warn('Language select element not found');
+        return;
+    }
+    
+    currentLanguage = currentLanguageSelect.value || 'bg';
     updateLanguage();
     
     // Recalculate if there are values
@@ -534,38 +576,201 @@ function handleLanguageChange() {
     if (paid && itemCost) {
         calculateResults();
     }
+    
+    console.log('Language changed to:', currentLanguage);
+}
+
+// Handle theme change
+function handleThemeChange() {
+    // Get theme select element directly
+    const currentThemeSelect = document.getElementById('theme-select');
+    
+    if (!currentThemeSelect) {
+        console.warn('Theme select element not found');
+        return;
+    }
+    
+    const theme = currentThemeSelect.value || 'auto';
+    
+    // Save preference
+    localStorage.setItem('theme-preference', theme);
+    
+    // Preserve contrast classes
+    const hasContrastHigh = document.body.classList.contains('contrast-high');
+    const hasContrastUltra = document.body.classList.contains('contrast-ultra');
+    
+    // Remove existing theme classes
+    document.body.classList.remove('theme-light', 'theme-dark');
+    
+    if (theme === 'auto') {
+        // Use OS preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) {
+            document.body.classList.add('theme-dark');
+        } else {
+            document.body.classList.add('theme-light');
+        }
+    } else if (theme === 'dark') {
+        document.body.classList.add('theme-dark');
+    } else {
+        document.body.classList.add('theme-light');
+    }
+    
+    // Restore contrast classes
+    if (hasContrastHigh) {
+        document.body.classList.add('contrast-high');
+    }
+    if (hasContrastUltra) {
+        document.body.classList.add('contrast-ultra');
+    }
+    
+    console.log('Theme changed to:', theme, 'Body classes:', document.body.className);
+}
+
+// Listen for OS theme changes when in auto mode
+function setupThemeListener() {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', (e) => {
+        const currentThemeSelect = themeSelect || document.getElementById('theme-select');
+        if (currentThemeSelect && currentThemeSelect.value === 'auto') {
+            handleThemeChange();
+        }
+    });
 }
 
 // Handle contrast change
 function handleContrastChange() {
-    const contrast = contrastSelect.value;
-    document.body.className = '';
+    // Get contrast select element directly (don't try to reassign the global variable)
+    const currentContrastSelect = document.getElementById('contrast-select');
+    if (!currentContrastSelect) {
+        console.warn('Contrast select element not found');
+        return;
+    }
+    
+    const contrast = currentContrastSelect.value || 'default';
+    
+    // Preserve theme classes
+    const hasThemeLight = document.body.classList.contains('theme-light');
+    const hasThemeDark = document.body.classList.contains('theme-dark');
+    
+    // Remove only contrast classes
+    document.body.classList.remove('contrast-high', 'contrast-ultra');
+    
+    // Restore theme classes (in case they were accidentally removed)
+    if (hasThemeLight) {
+        document.body.classList.add('theme-light');
+    }
+    if (hasThemeDark) {
+        document.body.classList.add('theme-dark');
+    }
+    
+    // Add new contrast class
     if (contrast === 'high') {
         document.body.classList.add('contrast-high');
     } else if (contrast === 'ultra') {
         document.body.classList.add('contrast-ultra');
     }
+    
+    console.log('Contrast changed to:', contrast, 'Body classes:', document.body.className);
 }
 
 // Initialize - set initial currency announcement
-window.addEventListener('load', () => {
+function initializeApp() {
+    // Re-initialize DOM elements if not already set
+    if (!languageSelect) languageSelect = document.getElementById('language-select');
+    if (!contrastSelect) contrastSelect = document.getElementById('contrast-select');
+    if (!themeSelect) themeSelect = document.getElementById('theme-select');
+    
     // Set initial language
-    currentLanguage = languageSelect.value || 'bg';
+    currentLanguage = languageSelect ? languageSelect.value || 'bg' : 'bg';
     updateLanguage();
+    
+    // Set initial theme from localStorage or default to auto
+    const savedTheme = localStorage.getItem('theme-preference');
+    if (savedTheme && themeSelect) {
+        themeSelect.value = savedTheme;
+    } else if (themeSelect && !themeSelect.value) {
+        themeSelect.value = 'auto';
+    }
+    // Apply theme immediately
+    handleThemeChange();
+    setupThemeListener();
     
     // Set initial contrast
     handleContrastChange();
     
-    // Add event listeners
-    languageSelect.addEventListener('change', handleLanguageChange);
-    contrastSelect.addEventListener('change', handleContrastChange);
-    
-    const currency = getSelectedCurrency();
-    const t = translations[currentLanguage];
-    const currencyName = currency === 'BGN' ? t.bgn : t.eur;
-    announceToScreenReader(t.calculatorAnnouncement.replace('{currency}', currencyName).replace('{rate}', EXCHANGE_RATE), 'polite');
-    
-    // Focus on first input for keyboard users
-    amountPaidInput.focus();
+    // Add event listeners (only if not already added)
+    if (languageSelect && !languageSelect.hasAttribute('data-listener-attached')) {
+        languageSelect.addEventListener('change', handleLanguageChange);
+        languageSelect.setAttribute('data-listener-attached', 'true');
+    }
+    if (contrastSelect && !contrastSelect.hasAttribute('data-listener-attached')) {
+        contrastSelect.addEventListener('change', handleContrastChange);
+        contrastSelect.setAttribute('data-listener-attached', 'true');
+    }
+    if (themeSelect && !themeSelect.hasAttribute('data-listener-attached')) {
+        // Direct inline handler to ensure it works
+        themeSelect.addEventListener('change', function() {
+            console.log('Theme select changed to:', this.value);
+            handleThemeChange();
+        });
+        themeSelect.addEventListener('input', function() {
+            console.log('Theme select input changed to:', this.value);
+            handleThemeChange();
+        });
+        themeSelect.setAttribute('data-listener-attached', 'true');
+        console.log('Theme select event listeners attached');
+    } else if (!themeSelect) {
+        console.warn('Theme select not found during initialization');
+    }
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    // DOM is already loaded
+    initializeApp();
+}
+
+// Also initialize on window load as fallback (only if not already initialized)
+let appInitialized = false;
+window.addEventListener('load', () => {
+    if (!appInitialized) {
+        initializeApp();
+        appInitialized = true;
+        
+        const currency = getSelectedCurrency();
+        const t = translations[currentLanguage];
+        const currencyName = currency === 'BGN' ? t.bgn : t.eur;
+        announceToScreenReader(t.calculatorAnnouncement.replace('{currency}', currencyName).replace('{rate}', EXCHANGE_RATE), 'polite');
+        
+        // Focus on first input for keyboard users
+        if (amountPaidInput) {
+            amountPaidInput.focus();
+        }
+    }
 });
+
+// Export functions to global scope for testing (after all functions are defined)
+if (typeof window !== 'undefined') {
+    window.handleContrastChange = handleContrastChange;
+    window.handleThemeChange = handleThemeChange;
+    window.handleLanguageChange = handleLanguageChange;
+    window.updateLanguage = updateLanguage;
+}
+
+// Fallback: Ensure event listeners are attached even if initializeApp didn't run
+setTimeout(() => {
+    const languageSelect = document.getElementById('language-select');
+    if (languageSelect && !languageSelect.hasAttribute('data-listener-attached')) {
+        languageSelect.addEventListener('change', handleLanguageChange);
+        languageSelect.setAttribute('data-listener-attached', 'true');
+    }
+}, 1000);
+
+
+
+
+
 

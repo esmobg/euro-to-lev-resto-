@@ -12,10 +12,18 @@
         <!-- Accessibility Controls -->
         <div class="accessibility-controls" role="toolbar" aria-label="Контроли за достъпност">
             <div class="control-group">
-                <label for="language-select" class="control-label">Език / Language:</label>
+                <label for="language-select" class="control-label" id="language-label">Език / Language:</label>
                 <select id="language-select" class="control-select" aria-label="Избор на език">
                     <option value="bg">Български</option>
                     <option value="en">English</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="theme-select" class="control-label" id="theme-label">Цветова тема:</label>
+                <select id="theme-select" class="control-select" aria-label="Избор на цветова тема">
+                    <option value="light">Светла</option>
+                    <option value="dark">Тъмна</option>
+                    <option value="auto" selected>Автоматична (OS)</option>
                 </select>
             </div>
             <div class="control-group">
@@ -67,47 +75,50 @@
                 </fieldset>
 
                 <!-- Input Fields -->
-                <div class="input-group">
-                    <label for="amount-paid" class="input-label">
-                        Сума платена
-                        <span class="required" aria-label="задължително поле">*</span>
-                    </label>
-                    <input 
-                        type="number" 
-                        id="amount-paid" 
-                        name="amount-paid"
-                        step="0.01"
-                        min="0"
-                        required
-                        aria-required="true"
-                        aria-describedby="amount-paid-description"
-                        placeholder="0.00"
-                    >
-                    <span id="amount-paid-description" class="sr-only">
-                        Въведете сумата, която е платена
-                    </span>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="amount-paid" class="input-label" id="amount-paid-label">
+                            Сума платена
+                            <span class="required" aria-label="задължително поле">*</span>
+                        </label>
+                        <input 
+                            type="number" 
+                            id="amount-paid" 
+                            name="amount-paid"
+                            step="0.01"
+                            min="0"
+                            required
+                            aria-required="true"
+                            aria-describedby="amount-paid-description"
+                            placeholder="0.00"
+                        >
+                        <span id="amount-paid-description" class="sr-only">
+                            Въведете сумата, която е платена
+                        </span>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="item-cost" class="input-label" id="item-cost-label">
+                            Стойност на стоката
+                            <span class="required" aria-label="задължително поле">*</span>
+                        </label>
+                        <input 
+                            type="number" 
+                            id="item-cost" 
+                            name="item-cost"
+                            step="0.01"
+                            min="0"
+                            required
+                            aria-required="true"
+                            aria-describedby="item-cost-description"
+                            placeholder="0.00"
+                        >
+                        <span id="item-cost-description" class="sr-only">
+                            Въведете стойността на стоката
+                        </span>
+                    </div>
                 </div>
 
-                <div class="input-group">
-                    <label for="item-cost" class="input-label">
-                        Стойност на стоката
-                        <span class="required" aria-label="задължително поле">*</span>
-                    </label>
-                    <input 
-                        type="number" 
-                        id="item-cost" 
-                        name="item-cost"
-                        step="0.01"
-                        min="0"
-                        required
-                        aria-required="true"
-                        aria-describedby="item-cost-description"
-                        placeholder="0.00"
-                    >
-                    <span id="item-cost-description" class="sr-only">
-                        Въведете стойността на стоката
-                    </span>
-                </div>
 
 
                 <!-- Action Buttons -->
@@ -161,10 +172,121 @@
             <p class="accessibility-info">
                 Този калкулатор е създаден с фокус върху достъпността. Поддържа екранни четци, клавиатурна навигация и висока контрастност.
             </p>
+            <p class="footer-credit">
+                Изработено от <a href="https://ismailov.website" target="_blank" rel="noopener noreferrer">ismailov.website</a>
+            </p>
         </footer>
     </div>
 
-    <script src="script.js"></script>
-</body>
+        <script src="script.js"></script>
+        <script>
+            // Ensure language switcher works - attach event listener directly
+            (function() {
+                function attachLanguageListener() {
+                    const languageSelect = document.getElementById('language-select');
+                    if (languageSelect && !languageSelect.hasAttribute('data-lang-listener')) {
+                        languageSelect.setAttribute('data-lang-listener', 'true');
+                        languageSelect.addEventListener('change', function() {
+                            // Use handleLanguageChange if available, otherwise call updateLanguage directly
+                            if (typeof window.handleLanguageChange === 'function') {
+                                window.handleLanguageChange();
+                            } else if (typeof window.updateLanguage === 'function') {
+                                const lang = this.value || 'bg';
+                                if (window.currentLanguage !== undefined) {
+                                    window.currentLanguage = lang;
+                                }
+                                window.updateLanguage();
+                            }
+                        });
+                    }
+                }
+                
+                // Try multiple times to ensure it works
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', attachLanguageListener);
+                } else {
+                    attachLanguageListener();
+                }
+                
+                // Also try after delays to catch late script loading
+                setTimeout(attachLanguageListener, 100);
+                setTimeout(attachLanguageListener, 500);
+                setTimeout(attachLanguageListener, 1000);
+            })();
+            
+            // Ensure theme switcher works - attach event listener directly
+            (function() {
+                function applyTheme(theme) {
+                    theme = theme || 'auto';
+                    localStorage.setItem('theme-preference', theme);
+                    
+                    // Preserve contrast classes
+                    const hasContrastHigh = document.body.classList.contains('contrast-high');
+                    const hasContrastUltra = document.body.classList.contains('contrast-ultra');
+                    
+                    document.body.classList.remove('theme-light', 'theme-dark');
+                    
+                    if (theme === 'auto') {
+                        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        document.body.classList.add(prefersDark ? 'theme-dark' : 'theme-light');
+                    } else if (theme === 'dark') {
+                        document.body.classList.add('theme-dark');
+                    } else {
+                        document.body.classList.add('theme-light');
+                    }
+                    
+                    // Restore contrast classes
+                    if (hasContrastHigh) {
+                        document.body.classList.add('contrast-high');
+                    }
+                    if (hasContrastUltra) {
+                        document.body.classList.add('contrast-ultra');
+                    }
+                }
+                
+                function attachThemeListener() {
+                    const themeSelect = document.getElementById('theme-select');
+                    if (themeSelect) {
+                        // Remove existing listener by cloning
+                        if (themeSelect.hasAttribute('data-theme-listener')) {
+                            return; // Already attached
+                        }
+                        themeSelect.setAttribute('data-theme-listener', 'true');
+                        
+                        // Attach change event
+                        themeSelect.addEventListener('change', function() {
+                            applyTheme(this.value);
+                        });
+                        
+                        // Apply initial theme
+                        const savedTheme = localStorage.getItem('theme-preference');
+                        if (savedTheme) {
+                            themeSelect.value = savedTheme;
+                            applyTheme(savedTheme);
+                        } else {
+                            applyTheme(themeSelect.value);
+                        }
+                    }
+                }
+                
+                // Try multiple times to ensure it works
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', attachThemeListener);
+                } else {
+                    attachThemeListener();
+                }
+                
+                // Also try after delays
+                setTimeout(attachThemeListener, 50);
+                setTimeout(attachThemeListener, 200);
+                setTimeout(attachThemeListener, 500);
+            })();
+        </script>
+    </body>
 </html>
+
+
+
+
+
 

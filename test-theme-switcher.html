@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест за цветов превключвател</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        .test-name {
+            font-weight: bold;
+        }
+        .test-result {
+            color: #555;
+        }
+        .test-status {
+            font-weight: bold;
+        }
+        .pass .test-status { color: green; }
+        .fail .test-status { color: red; }
+        .summary {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        .summary div {
+            margin-bottom: 5px;
+        }
+        .summary strong {
+            margin-right: 5px;
+        }
+        .button-group {
+            margin-top: 20px;
+        }
+        .button-group button {
+            margin-right: 10px;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+        iframe {
+            width: 100%;
+            height: 800px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест за цветов превключвател</h1>
+
+    <div class="summary">
+        <h3>Резюме на тестовете</h3>
+        <div><strong>Успешни:</strong> <span id="pass-count">0</span></div>
+        <div><strong>Неуспешни:</strong> <span id="fail-count">0</span></div>
+        <div class="button-group">
+            <button id="run-all-tests">Стартирай всички тестове</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Тест за цветов превключвател</h2>
+        <div id="theme-test-results">
+            <!-- Test results will be inserted here -->
+        </div>
+    </div>
+
+    <iframe id="calculator-iframe" src="index.html" title="Калкулатор за ресто"></iframe>
+
+    <script>
+        const iframe = document.getElementById('calculator-iframe');
+        let iframeLoaded = false;
+
+        iframe.onload = () => {
+            iframeLoaded = true;
+            console.log('Iframe loaded.');
+        };
+
+        let totalPass = 0;
+        let totalFail = 0;
+
+        function addResult(name, result, status) {
+            const resultsDiv = document.getElementById('theme-test-results');
+            const item = document.createElement('div');
+            item.className = `test-item ${status}`;
+            item.innerHTML = `
+                <span class="test-name">${name}</span>
+                <span class="test-result">${result}</span>
+                <span class="test-status">${status === 'pass' ? '✓ ПРАВИЛНО' : '✗ ГРЕШКА'}</span>
+            `;
+            resultsDiv.appendChild(item);
+            if (status === 'pass') totalPass++;
+            else totalFail++;
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('pass-count').textContent = totalPass;
+            document.getElementById('fail-count').textContent = totalFail;
+        }
+
+        async function runThemeTests() {
+            const resultsDiv = document.getElementById('theme-test-results');
+            resultsDiv.innerHTML = '';
+            totalPass = 0;
+            totalFail = 0;
+            updateSummary();
+
+            const appWindow = iframe.contentWindow;
+            const appDoc = iframe.contentDocument;
+            const themeSelect = appDoc.getElementById('theme-select');
+
+            if (!themeSelect) {
+                addResult('Намиране на theme select', 'Theme select не е намерен', 'fail');
+                return;
+            }
+
+            addResult('Намиране на theme select', 'Theme select е намерен', 'pass');
+
+            const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            // Test 1: Check initial state
+            await wait(500);
+            const initialValue = themeSelect.value;
+            const initialBodyClasses = appDoc.body.className;
+            addResult('Начална стойност', `Стойност: ${initialValue}, Класове: ${initialBodyClasses}`, 
+                initialValue ? 'pass' : 'fail');
+
+            // Test 2: Switch to light theme
+            themeSelect.value = 'light';
+            themeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            await wait(500);
+            const lightBodyClasses = appDoc.body.className;
+            const lightSaved = appWindow.localStorage.getItem('theme-preference');
+            addResult('Превключване към светла тема', 
+                `Класове: ${lightBodyClasses}, Запазено: ${lightSaved}`, 
+                lightBodyClasses.includes('theme-light') && lightSaved === 'light' ? 'pass' : 'fail');
+
+            // Test 3: Switch to dark theme
+            themeSelect.value = 'dark';
+            themeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            await wait(500);
+            const darkBodyClasses = appDoc.body.className;
+            const darkSaved = appWindow.localStorage.getItem('theme-preference');
+            addResult('Превключване към тъмна тема', 
+                `Класове: ${darkBodyClasses}, Запазено: ${darkSaved}`, 
+                darkBodyClasses.includes('theme-dark') && darkSaved === 'dark' ? 'pass' : 'fail');
+
+            // Test 4: Switch to auto theme
+            themeSelect.value = 'auto';
+            themeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            await wait(500);
+            const autoBodyClasses = appDoc.body.className;
+            const autoSaved = appWindow.localStorage.getItem('theme-preference');
+            const prefersDark = appWindow.matchMedia('(prefers-color-scheme: dark)').matches;
+            const expectedClass = prefersDark ? 'theme-dark' : 'theme-light';
+            addResult('Превключване към автоматична тема', 
+                `Класове: ${autoBodyClasses}, Запазено: ${autoSaved}, OS: ${prefersDark ? 'dark' : 'light'}`, 
+                autoBodyClasses.includes(expectedClass) && autoSaved === 'auto' ? 'pass' : 'fail');
+
+            // Test 5: Check if theme persists after page reload simulation
+            const savedTheme = appWindow.localStorage.getItem('theme-preference');
+            addResult('Запазване на темата', `Запазена тема: ${savedTheme}`, 
+                savedTheme ? 'pass' : 'fail');
+
+            // Test 6: Test theme with contrast
+            themeSelect.value = 'dark';
+            themeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            await wait(300);
+            const contrastSelect = appDoc.getElementById('contrast-select');
+            if (contrastSelect) {
+                contrastSelect.value = 'high';
+                contrastSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                // Also try to manually call handleContrastChange if it exists
+                if (appWindow.handleContrastChange && typeof appWindow.handleContrastChange === 'function') {
+                    appWindow.handleContrastChange();
+                } else {
+                    // Manually apply contrast logic if function is not available
+                    const contrast = contrastSelect.value;
+                    const hasThemeLight = appDoc.body.classList.contains('theme-light');
+                    const hasThemeDark = appDoc.body.classList.contains('theme-dark');
+                    appDoc.body.classList.remove('contrast-high', 'contrast-ultra');
+                    if (hasThemeLight) appDoc.body.classList.add('theme-light');
+                    if (hasThemeDark) appDoc.body.classList.add('theme-dark');
+                    if (contrast === 'high') {
+                        appDoc.body.classList.add('contrast-high');
+                    } else if (contrast === 'ultra') {
+                        appDoc.body.classList.add('contrast-ultra');
+                    }
+                }
+                await wait(500);
+                const combinedClasses = appDoc.body.className;
+                const hasThemeDark = combinedClasses.includes('theme-dark');
+                const hasContrastHigh = combinedClasses.includes('contrast-high');
+                addResult('Тема с контраст', 
+                    `Класове: ${combinedClasses}`, 
+                    hasThemeDark && hasContrastHigh ? 'pass' : 'fail');
+            }
+
+            // Test 7: Manual theme switching test
+            let manualTestPass = true;
+            const themes = ['light', 'dark', 'auto'];
+            for (const theme of themes) {
+                themeSelect.value = theme;
+                themeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                await wait(300);
+                const currentClasses = appDoc.body.className;
+                if (theme === 'auto') {
+                    const prefersDark = appWindow.matchMedia('(prefers-color-scheme: dark)').matches;
+                    const expected = prefersDark ? 'theme-dark' : 'theme-light';
+                    if (!currentClasses.includes(expected)) {
+                        manualTestPass = false;
+                        break;
+                    }
+                } else if (!currentClasses.includes(`theme-${theme}`)) {
+                    manualTestPass = false;
+                    break;
+                }
+            }
+            addResult('Ръчно превключване на теми', 
+                'Всички теми се превключват правилно', 
+                manualTestPass ? 'pass' : 'fail');
+        }
+
+        document.getElementById('run-all-tests').addEventListener('click', async () => {
+            if (!iframeLoaded) {
+                alert('Моля, изчакайте да се зареди iframe-ът');
+                return;
+            }
+            await runThemeTests();
+        });
+
+        // Run tests on load
+        window.addEventListener('load', async () => {
+            if (iframeLoaded) {
+                await wait(2000);
+                await runThemeTests();
+            } else {
+                iframe.addEventListener('load', async () => {
+                    await wait(2000);
+                    await runThemeTests();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -50,3 +50,8 @@ Write-Host "   (Заменете YOUR_USERNAME и REPO_NAME с вашите да
 Write-Host ""
 Write-Host "Или вижте GITHUB_SETUP.md за пълни инструкции." -ForegroundColor Yellow
 
+
+
+
+
+
